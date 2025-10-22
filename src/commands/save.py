@@ -1,11 +1,12 @@
 from handlers.commands import Command
 from telethon import TelegramClient, events
 from telethon.tl.custom.message import Message
-from utils import download_file
 import asyncio
 from handlers.temp_event import TemporaryEvent
+from utils import DownloadManager
+from constants import DEVS
 
-@Command(name="save")
+@Command(name="save", allowed=DEVS)
 async def save(event: Message, client: TelegramClient):
     resp = await event.respond("📂 Send me a file:")
 
@@ -21,21 +22,20 @@ async def save(event: Message, client: TelegramClient):
 
 
         if temp_event.file and temp_event.document:
-            msg= await temp_event.reply("🌐 Downloading ...")
+
+            name = temp_event.file.name
+            msg= await temp_event.reply(f"🌐 Downloading ... `{name}`")
+
             async def progress(numerator, denominator):
-                try: await msg.edit(f"🌐 Downloading ({int(numerator/denominator*100)}%)")  # type: ignore
-                except: pass
+                if (numerator>=denominator):
+                    try: await msg.edit(f"✅ Downloaded successfully!\n📁 `{name}`")
+                    except: pass
+                else:
+                    try: await msg.edit(f"🌐 Downloading ({int(numerator/denominator*100)}%)")  # type: ignore
+                    except: pass
 
-            name = temp_event.file.name or "unnamed.tmp"
-            async def completed():
-                completed_msg = f"✅ Downloaded successfully!\n📁 `{name}`"
-                try: await msg.edit(completed_msg)  # type: ignore
-                except:
-                    # This will be used when, by any chance Telegram rate-limits us.
-                    await asyncio.sleep(5)
-                    await msg.edit(completed_msg)  # type: ignore
-
-            await download_file(client=client, message=temp_event, output_file=name, dest_folder="downloads",progress_callback=progress, completed_callback=completed)
+            manager = DownloadManager(message=temp_event, client=client, progress_callback=progress)
+            await manager.download_file("downloads")
 
         else:
             await temp_event.reply("❌ Message contains no file or document. If you think this is a mistake, please mention it on our support channel.")
