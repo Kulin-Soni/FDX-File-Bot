@@ -10,7 +10,16 @@ A simple bot to download files from Telegram to host at very fast speed.
 ### Steps
 1. Setup environment variables following [Environment Variables](#environment-variables) guide.
 
-3. Run a docker container:
+2. Building image: (If using docker compose, skip to 4th step)
+    ```
+    docker build -t fdximage .
+    ```
+3. Run the image:
+    ```
+    docker run --env-file .env fdximage
+    ```
+
+3. Run a docker service container:
     ```
     docker compose up
     ```
